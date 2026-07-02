@@ -3,6 +3,9 @@ import camelot
 import pandas as pd
 from datetime import datetime
 import re
+import tempfile
+import requests
+import os
 
 DATE_FORMATS = [
     '%d/%m/%Y', '%d-%m-%Y', '%d/%m/%y',
@@ -34,23 +37,29 @@ def clean_amount(amount_str):
 
 def detect_columns(df):
     col_map = {}
+
     for col in df.columns:
         col_lower = str(col).lower().strip()
-        if any(k in col_lower for k in ['date', 'dt', 'txn date', 'tran date', 'value date']):
-            if 'date' not in col_map:
-                col_map['date'] = col
-            elif 'value_date' not in col_map:
-                col_map['value_date'] = col
-        elif any(k in col_lower for k in ['narration', 'description', 'particulars', 'details', 'remarks', 'transaction details']):
-            col_map['description'] = col
-        elif any(k in col_lower for k in ['debit', 'dr', 'withdrawal', 'withdrawals', 'debit amount', 'withdrawal (dr.)']):
-            col_map['debit'] = col
-        elif any(k in col_lower for k in ['credit', 'cr', 'deposit', 'deposits', 'credit amount', 'deposit (cr.)']):
-            col_map['credit'] = col
-        elif any(k in col_lower for k in ['balance', 'bal', 'closing balance', 'running balance']):
-            col_map['balance'] = col
-        elif any(k in col_lower for k in ['chq', 'cheque', 'ref', 'reference', 'chq/ref']):
-            col_map['reference'] = col
+
+        if "date" in col_lower:
+            col_map["date"] = col
+
+        elif "description" in col_lower:
+            col_map["description"] = col
+
+        elif "withdrawal" in col_lower or "debit" in col_lower:
+            col_map["debit"] = col
+
+        elif "deposit" in col_lower or "credit" in col_lower:
+            col_map["credit"] = col
+
+        elif "balance" in col_lower:
+            col_map["balance"] = col
+
+        elif "ref" in col_lower or "chq" in col_lower:
+            col_map["reference"] = col
+
+    print("Detected Columns:", col_map)
     return col_map
 
 def extract_transactions_from_df(df, statement):
@@ -70,7 +79,9 @@ def extract_transactions_from_df(df, statement):
             if not date:
                 continue
 
-            description = str(row[col_map['description']]).strip()
+            description = " ".join(
+                str(row[col_map["description"]].split)
+            )
             if not description or description.lower() in ['nan', 'none', '']:
                 continue
 
@@ -129,11 +140,23 @@ def parse_with_camelot(pdf_path, statement):
         all_transactions = []
         for table in tables:
             df = table.df
-            df.columns = df.iloc[0]
-            df = df[1:].reset_index(drop=True)
-            df = df.replace('', None)
-            txns = extract_transactions_from_df(df, statement)
-            all_transactions.extend(txns)
+            print("=" * 80)
+            print(df.head(10))
+            print("=" * 80)
+            print(df.columns)
+            print("=" * 80)
+        df.columns = (
+            df.iloc[0]
+            .astype(str)
+            .str.replace("\n", " ", regex=False)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+        )
+        df = df[1:].reset_index(drop=True)
+            
+        df = df.replace('', None)
+        txns = extract_transactions_from_df(df, statement)
+        all_transactions.extend(txns)
 
         return all_transactions
     except Exception as e:
@@ -168,9 +191,37 @@ def parse_with_pdfplumber(pdf_path, statement):
         return []
 
 def parse_pdf(statement):
-    pdf_path = statement.file.path
-    transactions = parse_with_camelot(pdf_path, statement)
-    if not transactions:
-        print('Camelot found no transactions, trying pdfplumber...')
-        transactions = parse_with_pdfplumber(pdf_path, statement)
-    return transactions
+    print("Cloudinary URL:", statement.file_url)
+
+    response = requests.get(statement.file_url)
+
+    print("Status Code:", response.status_code)
+    print("Response:", response.text[:300])
+
+    if response.status_code != 200:
+        raise Exception("Could not download PDF from Cloudinary")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+        temp_pdf.write(response.content)
+        temp_path = temp_pdf.name
+
+    try:
+        transactions = parse_with_camelot(temp_path, statement)
+
+        if not transactions:
+            print("Camelot found no transactions, trying pdfplumber...")
+            transactions = parse_with_pdfplumber(temp_path, statement)
+
+        return transactions
+
+    finally:
+        import gc
+        import time
+
+        gc.collect()
+        time.sleep(1)
+
+        try:
+            os.remove(temp_path)
+        except PermissionError:
+            pass

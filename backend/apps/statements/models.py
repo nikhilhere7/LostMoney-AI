@@ -46,7 +46,8 @@ class Statement(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='statements')
     bank_account = models.ForeignKey(BankAccount, on_delete=models.CASCADE, related_name='statements', null=True, blank=True)
-    file = models.FileField(upload_to='statements/%Y/%m/')
+    file_url = models.URLField(max_length=1000, null=True, blank=True)
+    public_id = models.CharField(max_length=500, null=True, blank=True)
     file_type = models.CharField(max_length=10, choices=FILE_TYPE_CHOICES)
     file_name = models.CharField(max_length=255)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='uploaded')

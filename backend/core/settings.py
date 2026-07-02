@@ -1,5 +1,6 @@
 from pathlib import Path
 from decouple import config
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,7 +24,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-    'storages',
+    'cloudinary',
 ]
 
 LOCAL_APPS = [
@@ -108,9 +109,14 @@ CELERY_RESULT_BACKEND = config('REDIS_URL')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
-# File uploads
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+cloudinary.config(
+    cloud_name=config("CLOUDINARY_CLOUD_NAME"),
+    api_key=config("CLOUDINARY_API_KEY"),
+    api_secret=config("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
+
+MEDIA_URL = "/media/"
 
 # Static
 STATIC_URL = '/static/'
