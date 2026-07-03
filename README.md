@@ -128,73 +128,73 @@ Most Indians have no idea where their money goes. LostMoney.AI solves this by le
 ---
 
 ## Architecture
+
+```text
 React Frontend (Netlify)
-│
-▼
+        │
+        ▼
 Django REST API (Railway)
-│
-┌────┴────┐
-▼         ▼
-PostgreSQL  Redis
-│
-▼
-Celery Worker
-│
-▼
-PDF Parsing Engine
-(pdfplumber + camelot)
-│
-▼
-ML Categorization
-(scikit-learn + rules)
-│
-▼
-Analytics & Dashboard
+        │
+ ┌──────┴────────┐
+ ▼               ▼
+PostgreSQL     Redis
+                    │
+                    ▼
+             Celery Worker
+                    │
+                    ▼
+     PDF Parsing Engine
+   (pdfplumber + camelot)
+                    │
+                    ▼
+ ML Categorization Engine
+(scikit-learn + Rule Based)
+                    │
+                    ▼
+     Analytics Dashboard
+```
 
 ---
 
 ## Project Structure
+```text
 LostMoney-AI/
+│
 ├── backend/
 │   ├── apps/
-│   │   ├── analytics/          # Monthly reports, savings suggestions
-│   │   ├── statements/         # File upload, PDF/CSV parsing, Celery tasks
-│   │   ├── transactions/       # Transaction models, categorization, recurring detection
-│   │   └── users/              # Auth, registration, JWT
-│   ├── core/                   # Django settings, Celery config, URL routing
+│   │   ├── analytics/
+│   │   ├── statements/
+│   │   ├── transactions/
+│   │   └── users/
+│   │
+│   ├── core/
 │   ├── manage.py
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/              # Dashboard, Upload, Transactions, Analytics, Insights
-│   │   ├── components/         # Layout, Sidebar, shared UI
-│   │   ├── context/            # Auth context (JWT)
-│   │   └── utils/              # Axios API client
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── context/
+│   │   └── utils/
+│   │
 │   └── package.json
 │
 └── README.md
+```
 
 ---
 
-## How It Works
+## ⚙️ How It Works
 
-User uploads bank statement (PDF/CSV/Excel)
-↓
-File stored securely on Cloudinary
-↓
-Celery task queued for background processing
-↓
-pdfplumber + camelot extract transaction table
-↓
-Rule-based + ML engine categorizes each transaction
-↓
-Recurring payment algorithm detects subscriptions
-↓
-Monthly reports and savings suggestions generated
-↓
-Dashboard visualizes everything in real time
-
+1. Upload bank statement (PDF / CSV / Excel)
+2. Statement is securely stored on Cloudinary
+3. Celery queues a background parsing task
+4. pdfplumber & Camelot extract transactions
+5. Transactions are categorized using rule-based + ML engine
+6. Recurring subscriptions are detected
+7. Analytics are generated
+8. Dashboard updates instantly
 
 ---
 ## Author
