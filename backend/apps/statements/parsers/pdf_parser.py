@@ -79,9 +79,8 @@ def extract_transactions_from_df(df, statement):
             if not date:
                 continue
 
-            description = " ".join(
-                str(row[col_map["description"]].split)
-            )
+            description = " ".join(str(row[col_map["description"]]).split())
+            
             if not description or description.lower() in ['nan', 'none', '']:
                 continue
 
